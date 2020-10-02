@@ -480,6 +480,27 @@ class ManyToOneRelation extends AbstractRelations implements QueryResourcePersis
     }
 
     /**
+     * returns sql query statement to filter according to this data types value(s)
+     *
+     * @param  mixed $value
+     * @param  string $operator
+     * @param  mixed $params
+     *
+     * @return string
+     *
+     */
+    public function getFilterCondition($value, $operator, $params = [])
+    {
+        $params['name'] = $this->name . '__id';
+
+        return $this->getFilterConditionExt(
+            $value,
+            $operator,
+            $params
+        );
+    }
+
+    /**
      * converts data to be exposed via webservices
      *
      * @deprecated

@@ -121,4 +121,15 @@ trait Relation
     {
         return false;
     }
+
+    /**
+     * @return array|null
+     */
+    public function getGridFilterOptions(): ?array
+    {
+        if ($this->getObjectsAllowed()) {
+            return parent::getGridFilterOptions();
+        }
+        return [];
+    }
 }
