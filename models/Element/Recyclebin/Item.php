@@ -118,7 +118,6 @@ class Item extends Model\AbstractModel
      */
     public function restore($user = null)
     {
-        $dummy = null;
         $raw = file_get_contents($this->getStoreageFile());
         $element = Serialize::unserialize($raw);
 
@@ -138,21 +137,6 @@ class Item extends Model\AbstractModel
             if ($indentElement) {
                 $element->setKey($element->getKey().'_restore');
             }
-
-            // create an empty object first and clone it
-            // see https://github.com/pimcore/pimcore/issues/4219
-            Model\Version::disable();
-            $className = get_class($element);
-            /** @var Document|Asset|AbstractObject $dummy */
-            $dummy = \Pimcore::getContainer()->get('pimcore.model.factory')->build($className);
-            $dummy->setId($element->getId());
-            $dummy->setParentId($element->getParentId() ?: 1);
-            $dummy->setKey($element->getKey());
-            if ($dummy instanceof DataObject\Concrete) {
-                $dummy->setOmitMandatoryCheck(true);
-            }
-            $dummy->save(['isRecycleBinRestore' => true]);
-            Model\Version::enable();
         }
 
         if (\Pimcore\Tool\Admin::getCurrentUser()) {
@@ -171,9 +155,6 @@ class Item extends Model\AbstractModel
             AbstractObject::setDisableDirtyDetection($isDirtyDetectionDisabled);
         } catch (\Exception $e) {
             Logger::error($e);
-            if ($dummy) {
-                $dummy->delete();
-            }
             throw $e;
         }
 
@@ -296,40 +277,66 @@ class Item extends Model\AbstractModel
      */
     protected function doRecursiveRestore(Element\ElementInterface $element)
     {
-        $restoreBinaryData = function ($element, $scope) {
-            // assets are kinda special because they can contain massive amount of binary data which isn't serialized, we create separate files for them
-            if ($element instanceof Asset) {
-                $binFile = $scope->getStorageFileBinary($element);
-                if (file_exists($binFile)) {
-                    $binaryHandle = fopen($binFile, 'r', false, File::getContext());
-                    $element->setStream($binaryHandle);
-                }
-            }
-        };
-
-        $element = $this->unmarshalData($element);
-        $restoreBinaryData($element, $this);
-
-        if ($element instanceof DataObject\Concrete) {
-            $element->markAllLazyLoadedKeysAsLoaded();
-            $element->setOmitMandatoryCheck(true);
-        }
-        $element->save();
-
-        if (method_exists($element, 'getChildren')) {
+        $dummy = null;
+        try {
             if ($element instanceof DataObject\AbstractObject) {
-                $children = $element->getChildren([DataObject::OBJECT_TYPE_FOLDER, DataObject::OBJECT_TYPE_VARIANT, DataObject::OBJECT_TYPE_OBJECT], true);
-            } elseif ($element instanceof Document) {
-                $children = $element->getChildren(true);
-            } else {
-                $children = $element->getChildren();
+                // create an empty object first and clone it
+                // see https://github.com/pimcore/pimcore/issues/4219
+                Model\Version::disable();
+                $className = get_class($element);
+                /** @var Document|Asset|AbstractObject $dummy */
+                $dummy = \Pimcore::getContainer()->get('pimcore.model.factory')->build($className);
+                $dummy->setId($element->getId());
+                $dummy->setParentId($element->getParentId() ?: 1);
+                $dummy->setKey($element->getKey());
+                if ($dummy instanceof DataObject\Concrete) {
+                    $dummy->setOmitMandatoryCheck(true);
+                }
+                $dummy->save(['isRecycleBinRestore' => true]);
+                Model\Version::enable();
             }
-            if (is_array($children)) {
-                foreach ($children as $child) {
-                    $child->setParentId($element->getId());
-                    $this->doRecursiveRestore($child);
+
+
+            $restoreBinaryData = function ($element, $scope) {
+                // assets are kinda special because they can contain massive amount of binary data which isn't serialized, we create separate files for them
+                if ($element instanceof Asset) {
+                    $binFile = $scope->getStorageFileBinary($element);
+                    if (file_exists($binFile)) {
+                        $binaryHandle = fopen($binFile, 'r', false, File::getContext());
+                        $element->setStream($binaryHandle);
+                    }
+                }
+            };
+
+            $element = $this->unmarshalData($element);
+            $restoreBinaryData($element, $this);
+
+            if ($element instanceof DataObject\Concrete) {
+                $element->markAllLazyLoadedKeysAsLoaded();
+                $element->setOmitMandatoryCheck(true);
+            }
+            $element->save();
+
+            if (method_exists($element, 'getChildren')) {
+                if ($element instanceof DataObject\AbstractObject) {
+                    $children = $element->getChildren([DataObject::OBJECT_TYPE_FOLDER, DataObject::OBJECT_TYPE_VARIANT, DataObject::OBJECT_TYPE_OBJECT], true);
+                } elseif ($element instanceof Document) {
+                    $children = $element->getChildren(true);
+                } else {
+                    $children = $element->getChildren();
+                }
+                if (is_array($children)) {
+                    foreach ($children as $child) {
+                        $child->setParentId($element->getId());
+                        $this->doRecursiveRestore($child);
+                    }
                 }
             }
+        } catch (\Exception $e) {
+            if ($dummy) {
+                $dummy->delete();
+            }
+            throw $e;
         }
     }
 
