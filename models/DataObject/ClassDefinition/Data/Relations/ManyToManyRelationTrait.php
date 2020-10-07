@@ -38,4 +38,25 @@ trait ManyToManyRelationTrait
 
         parent::save($container, $params);
     }
+
+    /**
+     * returns sql query statement to filter according to this data types value(s)
+     *
+     * @param  mixed $value
+     * @param  string $operator
+     * @param  mixed $params
+     *
+     * @return string
+     *
+     */
+    public function getFilterCondition($value, $operator, $params = [])
+    {
+        $operator = 'LIKE';
+
+        return $this->getFilterConditionExt(
+            $value,
+            $operator,
+            $params
+        );
+    }
 }

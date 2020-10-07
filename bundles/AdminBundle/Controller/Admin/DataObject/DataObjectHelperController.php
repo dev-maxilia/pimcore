@@ -1289,6 +1289,9 @@ class DataObjectHelperController extends AdminController
             if ($field instanceof DataObject\ClassDefinition\Data\EncryptedField) {
                 $result['delegateDatatype'] = $field->getDelegateDatatype();
             }
+            if ($field instanceof DataObject\ClassDefinition\Data\Relations\AbstractRelations) {
+                $result['layout']->options = $field->getGridFilterOptions();
+            }
 
             return $result;
         } else {

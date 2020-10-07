@@ -59,6 +59,37 @@ pimcore.object.tags.manyToOneRelation = Class.create(pimcore.object.tags.abstrac
         };
     },
 
+    prepareStoreDataAndFilterLabels: function(options) {
+        var filteredStoreData = [];
+        if (options) {
+            for (var i = 0; i < options.length; i++) {
+
+                var label = t(options[i].key);
+                if(label.indexOf('<') >= 0) {
+                    label = replace_html_event_attributes(strip_tags(label, "div,span,b,strong,em,i,small,sup,sub2"));
+                }
+
+                filteredStoreData.push({'value': options[i].value, 'key': label});
+            }
+        }
+
+        return filteredStoreData;
+    },
+
+    getGridColumnFilter: function (field) {
+        var store = Ext.create('Ext.data.JsonStore', {
+            fields: ['key', "value"],
+            data: this.prepareStoreDataAndFilterLabels(field.layout.options)
+        });
+
+        return {
+            type: 'list',
+            dataIndex: field.key,
+            labelField: "key",
+            idField: "value",
+            options: store
+        };
+    },
 
     getLayoutEdit: function () {
 

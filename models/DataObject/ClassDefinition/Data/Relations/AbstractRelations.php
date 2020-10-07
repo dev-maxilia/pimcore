@@ -510,4 +510,28 @@ abstract class AbstractRelations extends Data implements
     {
         return 'array';
     }
+
+    /**
+     * @return array
+     */
+    public function getGridFilterOptions(): ?array
+    {
+        $options = [];
+        foreach ($this->getClasses() as $className) {
+            $listing = new DataObject\Listing();
+            $listing->setCondition('o_className = "' . $className['classes'] . '"');
+            foreach ($listing as $object) {
+                $options[] = [
+                    'value' => $object->getId(),
+                    'key' => $object->getKey(),
+                ];
+            }
+        }
+
+        usort($options, function($a, $b) {
+            return $a['key'] <=> $b['key'];
+        });
+
+        return $options;
+    }
 }
