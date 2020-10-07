@@ -658,8 +658,12 @@ class Model extends AbstractDefinitionHelper
             $rootPanel = (new \Pimcore\Model\DataObject\ClassDefinition\Layout\Tabpanel())->setName('Layout');
             $rootPanel->addChild($panel);
 
+            $panel->addChild($this->createDataChild('input', 'normalInput'));
+
             $lFields = new \Pimcore\Model\DataObject\ClassDefinition\Data\Localizedfields();
             $lFields->setName('localizedfields');
+
+            $lFields->addChild($this->createDataChild('input', 'linput'));
 
             $lFields->addChild($this->createDataChild('manyToManyObjectRelation', 'lobjects')
                 ->setClasses(['RelationTest'])
@@ -788,6 +792,8 @@ class Model extends AbstractDefinitionHelper
             $lFields->addChild($this->createDataChild('manyToManyRelation', 'lrelations')
                 ->setDocumentTypes([])->setAssetTypes([])->setClasses(['RelationTest'])
                 ->setDocumentsAllowed(false)->setAssetsAllowed(false)->setObjectsAllowed(true));
+
+            $lFields->addChild($this->createDataChild('input', 'linput'));
 
             $lFields->addChild($this->createDataChild('advancedManyToManyObjectRelation', 'ladvancedObjects')
                 ->setAllowMultipleAssignments(false)
